@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imprimante thermique</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <main>
+        <header>
+            <h1>Imprimante thermique</h1>
+            <p class="subtitle">Texte, image ou QR code, au choix</p>
+        </header>
+        <p style="text-align:center; margin-bottom:1rem;"><a href="/history" style="color:#d97706; text-decoration:none; font-size:0.9rem;">Voir l'historique</a></p>
+        {% if success %}<div class="alert success">{{ success }}</div>{% endif %}
+        {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="text">Texte</button>
+            <button class="tab-btn" data-tab="image">Image</button>
+            <button class="tab-btn" data-tab="qr">QR code</button>
+        </div>
+
+        <form method="post" action="/print" enctype="multipart/form-data">
+            <label>Titre (optionnel, imprime en gros)
+                <input type="text" name="title" placeholder="Ex: URGENT" maxlength="100">
+            </label>
+
+            <!-- Onglet TEXTE -->
+            <div class="tab-panel active" data-panel="text">
+                <label>Message
+                    <textarea name="text" rows="6" placeholder="Ton message..."></textarea>
+                </label>
+                <fieldset>
+                    <legend>Mise en forme</legend>
+                    <div class="row">
+                        <label class="checkbox"><input type="checkbox" name="bold" value="true"> Gras</label>
+                        <label class="checkbox"><input type="checkbox" name="underline" value="true"> Souligne</label>
+                    </div>
+                    <label>Alignement
+                        <select name="align">
+                            <option value="left">Gauche</option>
+                            <option value="center">Centre</option>
+                            <option value="right">Droite</option>
+                        </select>
+                    </label>
+                    <label>Taille
+                        <select name="size">
+                            <option value="normal">Normale</option>
+                            <option value="double_height">Hauteur double</option>
+                            <option value="double_width">Largeur double</option>
+                            <option value="double">Tres grand</option>
+                        </select>
+                    </label>
+                </fieldset>
+            </div>
+
+            <!-- Onglet IMAGE -->
+            <div class="tab-panel" data-panel="image">
+                <label>Image (jpg, png, gif...)
+                    <input type="file" name="image" accept="image/*">
+                </label>
+                <label>Legende (optionnelle, imprimee sous l'image)
+                    <input type="text" name="caption" placeholder="Ex: Photo de famille" maxlength="200">
+                </label>
+                <p class="hint">L'image sera convertie en noir et blanc et redimensionnee a 80mm.</p>
+            </div>
+
+            <!-- Onglet QR -->
+            <div class="tab-panel" data-panel="qr">
+                <label>Texte ou URL a encoder
+                    <input type="text" name="qr_data" placeholder="https://exemple.com" maxlength="500">
+                </label>
+                <p class="hint">Un QR code sera genere et imprime, avec le texte en dessous.</p>
+            </div>
+
+            <button type="submit">Imprimer</button>
+        </form>
+    </main>
+
+    <script>
+        const tabs = document.querySelectorAll('.tab-btn');
+        const panels = document.querySelectorAll('.tab-panel');
+        tabs.forEach(t => t.addEventListener('click', e => {
+            e.preventDefault();
+            tabs.forEach(x => x.classList.remove('active'));
+            panels.forEach(x => x.classList.remove('active'));
+            t.classList.add('active');
+            document.querySelector(`[data-panel="${t.dataset.tab}"]`).classList.add('active');
+        }));
+    </script>
+</body>
+</html>

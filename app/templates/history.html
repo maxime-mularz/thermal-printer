@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historique</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .history-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .history-item { padding: 0.8rem; background: #fafaf7; border-radius: 8px;
+                        border-left: 4px solid #d97706; }
+        .history-meta { font-size: 0.8rem; color: #888; margin-bottom: 0.3rem; }
+        .history-preview { font-size: 0.95rem; word-break: break-word; }
+        .kind-badge { display: inline-block; padding: 1px 8px; border-radius: 12px;
+                      font-size: 0.75rem; background: #e0e0d8; color: #555; margin-left: 0.5rem; }
+        a.back { color: #d97706; text-decoration: none; font-weight: 500; }
+    </style>
+</head>
+<body>
+    <main>
+        <header>
+            <h1>Historique</h1>
+            <p class="subtitle"><a class="back" href="/">&larr; Retour</a></p>
+        </header>
+        {% if not items %}
+            <p style="text-align:center; color:#888;">Pas encore de tickets imprimes.</p>
+        {% else %}
+        <div class="history-list">
+            {% for item in items %}
+            <div class="history-item">
+                <div class="history-meta">
+                    {{ item.timestamp.replace("T", " ")[:16] }}
+                    &middot; {{ item.source }}
+                    <span class="kind-badge">{{ item.kind }}</span>
+                </div>
+                {% if item.title %}<strong>{{ item.title }}</strong><br>{% endif %}
+                <div class="history-preview">{{ item.preview or "(vide)" }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </main>
+</body>
+</html>
