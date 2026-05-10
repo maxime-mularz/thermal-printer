@@ -1,4 +1,5 @@
 """Recuperation et formatage de la meteo via Open-Meteo (gratuit, sans cle API)."""
+import asyncio
 import logging
 import httpx
 from datetime import datetime
@@ -6,7 +7,6 @@ from .config import settings
 
 logger = logging.getLogger(__name__)
 
-# Codes meteo Open-Meteo (WMO Weather interpretation codes)
 WMO_CODES = {
     0: ("Ensoleille", "*"),
     1: ("Plutot ensoleille", "*"),
@@ -38,7 +38,6 @@ WMO_CODES = {
 
 
 def _conseil_habillage(t_min: float, t_max: float, code: int, vent: float, pluie: float) -> str:
-    """Petite phrase de conseil selon les conditions."""
     parts = []
     if t_max < 0:
         parts.append("Tres froid, gros manteau")
@@ -59,8 +58,8 @@ def _conseil_habillage(t_min: float, t_max: float, code: int, vent: float, pluie
     return ", ".join(parts) + "."
 
 
-async def fetch_weather() -> dict:
-    """Appelle l'API Open-Meteo et retourne les donnees du jour."""
+async def fetch_weather(max_retries: int = 3) -> dict:
+    """Appelle l'API Open-Meteo avec retry automatique en cas d'echec reseau."""
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
         "latitude": settings.weather_latitude,
@@ -70,14 +69,25 @@ async def fetch_weather() -> dict:
         "timezone": "Europe/Paris",
         "forecast_days": 1,
     }
-    async with httpx.AsyncClient(timeout=15) as client:
-        r = await client.get(url, params=params)
-        r.raise_for_status()
-        return r.json()
+    # Timeouts genereux : 30s connect, 45s read (l'API peut etre lente le matin)
+    timeout = httpx.Timeout(connect=30.0, read=45.0, write=15.0, pool=10.0)
+
+    last_error = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                r = await client.get(url, params=params)
+                r.raise_for_status()
+                return r.json()
+        except (httpx.TimeoutException, httpx.NetworkError, httpx.HTTPStatusError) as e:
+            last_error = e
+            logger.warning(f"Tentative meteo {attempt}/{max_retries} echouee: {type(e).__name__}: {e}")
+            if attempt < max_retries:
+                await asyncio.sleep(2 ** attempt)  # backoff exponentiel: 2s, 4s, 8s
+    raise RuntimeError(f"Meteo indisponible apres {max_retries} tentatives: {last_error}")
 
 
 def format_weather_text(data: dict) -> tuple[str, str]:
-    """Retourne (titre, corps) prets a etre imprimes."""
     daily = data["daily"]
     current = data.get("current", {})
     code = daily["weather_code"][0]
@@ -95,10 +105,8 @@ def format_weather_text(data: dict) -> tuple[str, str]:
     today = datetime.now().strftime("%A %d %B").capitalize()
 
     body_lines = [
-        today,
-        "",
-        f"  {icon}  {desc}",
-        "",
+        today, "",
+        f"  {icon}  {desc}", "",
         f"Temperatures : {t_min:.0f}C / {t_max:.0f}C",
     ]
     if t_now is not None:
@@ -110,5 +118,4 @@ def format_weather_text(data: dict) -> tuple[str, str]:
         "",
         _conseil_habillage(t_min, t_max, code, vent, pluie),
     ]
-
     return title, "\n".join(body_lines)
