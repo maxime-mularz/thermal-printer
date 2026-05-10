@@ -10,6 +10,7 @@ import qrcode
 from .config import settings
 from .history import log_print
 from .rate_limiter import check_limit
+from .text_filter import clean_for_printer
 
 logger = logging.getLogger(__name__)
 
