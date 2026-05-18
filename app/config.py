@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     weather_daily_hour: int = 7
     weather_daily_minute: int = 0
 
+    # Blague du jour (blagues-api.fr, token JWT requis - inscription gratuite)
+    blagues_api_token: str = ""
+
     @field_validator("printer_vendor_id", "printer_product_id", "printer_in_ep", "printer_out_ep", mode="before")
     @classmethod
     def parse_hex_int(cls, v):

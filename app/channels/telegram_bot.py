@@ -7,6 +7,7 @@ from ..config import settings
 from ..printer import printer, PrintJob
 from ..history import get_history
 from ..scheduler import print_weather_now
+from ..fun import fetch_joke
 
 logger = logging.getLogger(__name__)
 _app: Application | None = None
@@ -46,6 +47,7 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "  /title <titre>|<message>  titre + message\n"
         "  /qr <texte ou URL>        QR code\n"
         "  /meteo                    meteo du jour\n"
+        "  /blague                   une blague aleatoire\n"
         "  /history [n]              n derniers tickets (defaut 10)\n"
     )
 
@@ -91,6 +93,16 @@ async def meteo_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sender = update.effective_user.first_name or "x"
     await print_weather_now(source=f"scheduled/meteo-{sender}")
     await update.message.reply_text("Meteo imprimee !")
+
+
+async def blague_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _is_allowed(update.effective_user.id): return
+    sender = update.effective_user.first_name or "x"
+    joke = await fetch_joke()
+    await _submit_and_reply(update, PrintJob(
+        kind="text", text=joke, title="BLAGUE",
+        source=f"telegram/{sender}", align="left",
+    ), ok_msg=joke)
 
 
 async def history_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -167,6 +179,7 @@ async def start():
     _app.add_handler(CommandHandler("title", title_cmd))
     _app.add_handler(CommandHandler("qr", qr_cmd))
     _app.add_handler(CommandHandler("meteo", meteo_cmd))
+    _app.add_handler(CommandHandler("blague", blague_cmd))
     _app.add_handler(CommandHandler("history", history_cmd))
     _app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
     _app.add_handler(MessageHandler(filters.Document.IMAGE, document_handler))

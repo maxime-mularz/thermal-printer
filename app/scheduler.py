@@ -5,6 +5,7 @@ from apscheduler.triggers.cron import CronTrigger
 from .config import settings
 from .printer import printer, PrintJob
 from .weather import fetch_weather, format_weather_text
+from .fun import fetch_joke
 
 logger = logging.getLogger(__name__)
 _scheduler: AsyncIOScheduler | None = None
@@ -15,6 +16,8 @@ async def print_weather_now(source: str = "scheduled/meteo"):
     try:
         data = await fetch_weather()
         title, body = format_weather_text(data)
+        joke = await fetch_joke()
+        body += f"\n\n{'- ' * 16}\nLe mot du jour:\n{joke}"
         await printer.submit(PrintJob(
             kind="text", text=body, title=title,
             source=source, align="left", skip_rate_limit=True,
